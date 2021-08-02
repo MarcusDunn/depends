@@ -7,7 +7,7 @@ fun vFree(name: Name): Value {
 }
 
 /**
- * type Env = [Value]
+ * type Env = `[Value]`
  */
 typealias Env = List<Value>
 
@@ -17,8 +17,8 @@ typealias Env = List<Value>
  * eval↑ (Free x) d = vfree x
  * eval↑ (Bound i) d = d !! i
  * eval↑ (e :@: e′) d = vapp (eval↑ e d) (eval↓ e′ d)
- * eval↑ Star d =VStar
- * eval↑ (Pi τ τ′)d =VPi (eval↓ τ d)(λx →eval↓ τ′ (x : d))
+ * eval↑ Star d = VStar
+ * eval↑ (Pi τ τ′) d = VPi (eval↓ τ d) (λx →eval↓ τ′ (x : d))
  */
 fun evalInferableTerm(checkableTerm: InferableTerm, env: Env): Value {
     return when (checkableTerm) {
@@ -132,7 +132,7 @@ fun evalCheckableTerm(checkableTerm: CheckableTerm, env: Env): Value {
 
 /**
  * type Type = Value
- * type Context =[(Name,Type)]
+ * type Context = [(Name,Type)]
  */
 typealias Type = Value
 typealias Context = List<Pair<Name, Type>>
@@ -145,8 +145,8 @@ typealias Context = List<Pair<Name, Type>>
  *      type↓ i 0 e τ
  *      return τ
  * type↑ i 0 (Free x) = case lookup x 0of
- *      Just (HasType τ)→return τ
- *      Nothing →throwError "unknown identifier"
+ *      Just (HasType τ) → return τ
+ *      Nothing → throwError "unknown identifier"
  * type↑ i 0(e :@: e′) = do
  *      σ ← type↑ i 0e
  *      case σ of
@@ -154,19 +154,19 @@ typealias Context = List<Pair<Name, Type>>
  *                  type↓ i 0e′ τ
  *                  return τ′
  *          _ → throwError "illegal application"
- * type↑ i 0Nat =return VStar
- * type↑ i 0Zero =return VNat
- * type↑ i 0(Succ k)=
+ * type↑ i 0Nat = return VStar
+ * type↑ i 0Zero = return VNat
+ * type↑ i 0 (Succ k)=
  *      do type↓ i 0k VNat
  *      return VNat
- * type↑ i 0(NatElim m mz ms k)=
+ * type↑ i 0 (NatElim m mz ms k)=
  *      do
- *          type↓ i 0m (VPi VNat (const VStar))
- *          let mVal =eval↓ m [ ]
- *          type↓ i 0mz (mVal ‘vapp‘ VZero)
- *          type↓ i 0ms (VPi VNat (λl →VPi (mVal ‘vapp‘ l)(λ→mVal ‘vapp‘ VSucc l)))
- *          type↓ i 0k VNat
- *          let kVal =eval↓ k [ ]
+ *          type↓ i 0 m (VPi VNat (const VStar))
+ *          let mVal = eval↓ m [ ]
+ *          type↓ i 0 mz (mVal ‘vapp‘ VZero)
+ *          type↓ i 0 ms (VPi VNat (λl → VPi (mVal ‘vapp‘ l) (λ_ → mVal ‘vapp‘ VSucc l)))
+ *          type↓ i 0 k VNat
+ *          let kVal = eval↓ k [ ]
  *          return (mVal ‘vapp‘ kVal)
  * type↑ i 0(Vec αk)=
  *      do
@@ -176,22 +176,22 @@ typealias Context = List<Pair<Name, Type>>
  * type↑ i 0(Nil α)=
  *      do
  *          type↓ i 0αVStar
- *          let aVal =eval↓ α[ ]
+ *          let aVal = eval↓ α[ ]
  *          return (VVec aVal VZero)
- * type↑ i 0 (Cons αk x xs)=
+ * type↑ i 0 (Cons αk x xs) =
  *      do
  *          type↓ i 0αVStar
- *          let aVal =eval↓ α[ ]
+ *          let aVal = eval↓ α[ ]
  *          type↓ i 0k VNat
- *          let kVal =eval↓ k [ ]
+ *          let kVal = eval↓ k [ ]
  *          type↓ i 0x aVal
  *          type↓ i 0xs (VVec aVal kVal)
  *          return (VVec aVal (VSucc kVal))
- * type↑ i 0(VecElim αm mn mc k vs)=
+ * type↑ i 0(VecElim αm mn mc k vs) =
  *      do type↓ i 0αVStar
  *          let aVal =eval↓ α[ ]
  *          type↓ i 0m (VPi VNat (λk →VPi (VVec aVal k)(λ→VStar)))
- *          let mVal =eval↓ m [ ]
+ *          let mVal = eval↓ m [ ]
  *          type↓ i 0mn (foldl vapp mVal [VZero,VNil aVal])
  *          type↓ i 0mc (VPi VNat (λl →
  *              VPi aVal (λy →
@@ -199,9 +199,9 @@ typealias Context = List<Pair<Name, Type>>
  *              VPi (foldl vapp mVal [l,ys])(λ→
  *              (foldl vapp mVal [VSucc l,VCons aVal l y ys]))))))
  *          type↓ i 0k VNat
- *          let kVal =eval↓ k [ ]
+ *          let kVal = eval↓ k [ ]
  *          type↓ i 0vs (VVec aVal kVal)
- *          let vsVal =eval↓ vs [ ]
+ *          let vsVal = eval↓ vs [ ]
  *          return (foldl vapp mVal [kVal,vsVal])
  */
 fun typeUpArrow(i: Int, context: Context, infTerm: InferableTerm): Either<Type, String> {
@@ -343,7 +343,7 @@ fun typeUpArrow(i: Int, context: Context, infTerm: InferableTerm): Either<Type, 
 /**
  * type↓ :: Int → Context → Term↓ → Type → Result ()
  * type↓ i 0 (Inf e) τ = do
- *      τ′ ←type↑ i 0e
+ *      τ′ ← type↑ i 0e
  *      unless (τ == τ′) (throwError "type mismatch")
  * type↓ i 0 (Lam e) (Fun τ τ′) = type↓ (i + 1) ((Local i, HasType τ) : 0) (subst↓ 0 (Free (Local i)) e) τ′
  * type↓ i 0 _ _ = throwError "type mismatch"
@@ -380,7 +380,7 @@ fun typeDownArrow(
  * subst↑ i r (Free y) = Free y
  * subst↑ i r (e :@: e′) = subst↑ i r e :@: subst↓ i r e′
  * subst↑ i r Star = Star
- * subst↑ i r (Pi τ τ′)= Pi (subst↓ i r τ)(subst↓ (i + 1) r τ′)
+ * subst↑ i r (Pi τ τ′)= Pi (subst↓ i r τ) (subst↓ (i + 1) r τ′)
  */
 fun substituteUpArrow(i: Int, inferableTerm: InferableTerm, infTerm: InferableTerm): InferableTerm {
     return when (infTerm) {
@@ -406,7 +406,7 @@ fun substituteUpArrow(i: Int, inferableTerm: InferableTerm, infTerm: InferableTe
 /**
  * subst↓ :: Int → Term↑ → Term↓ → Term↓
  * subst↓ i r (Inf e) = Inf (subst↑ i r e)
- * subst↓ i r (Lam e) = Lam (subst↓ (i +1) r e)
+ * subst↓ i r (Lam e) = Lam (subst↓ (i + 1) r e)
  */
 fun substituteDownArrow(i: Int, inferableTerm: InferableTerm, checkableTerm: CheckableTerm): CheckableTerm {
     return when (checkableTerm) {
@@ -466,7 +466,7 @@ fun neutralQuote(i: Int, neutral: Neutral): InferableTerm {
 
 /**
  * boundfree :: Int →Name →Term↑
- * boundfree i (Quote k)=Bound (i −k −1)
+ * boundfree i (Quote k) = Bound (i − k − 1)
  * boundfree i x = Free x
  */
 fun boundFree(i: Int, name: Name): InferableTerm {
