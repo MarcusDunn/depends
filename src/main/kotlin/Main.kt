@@ -1,120 +1,4 @@
 /**
- * data Term↑
- * = Ann Term↓ Term↓
- * | Star
- * | Pi Term↓ Term↓
- * | Bound Int
- * | Free Name
- * | Term↑ :@: Term↓
- * | Nat
- * | NatElim Term↓ Term↓ Term↓ Term↓
- * | Zero
- * | Succ Term↓
- * | Vec Term↓ Term↓
- * | Nil Term↓
- * | Cons Term↓ Term↓ Term↓ Term↓
- * | VecElim Term↓ Term↓ Term↓ Term↓ Term↓ Term↓
- * deriving (Show,Eq)
- */
-sealed class InferableTerm {
-    data class Ann(val checkableTerm: CheckableTerm, val type: Type) : InferableTerm()
-    data class TStar(val star: Star) : InferableTerm() {
-        constructor() : this(Star.Star)
-    }
-
-    data class Pi(val input: CheckableTerm, val output: CheckableTerm) : InferableTerm()
-    data class Bound(val int: Int) : InferableTerm()
-    data class Free(val name: Name) : InferableTerm()
-    data class App(val inferableTerm: InferableTerm, val checkableTerm: CheckableTerm) : InferableTerm()
-    object Nat : InferableTerm()
-    object Zero : InferableTerm()
-    data class NatElim(val a: CheckableTerm, val b: CheckableTerm, val c: CheckableTerm, val d: CheckableTerm) :
-        InferableTerm()
-
-    data class Succ(val data: CheckableTerm) : InferableTerm()
-    data class Vec(val a: CheckableTerm, val b: CheckableTerm) : InferableTerm()
-    data class Nil(val type: CheckableTerm) : InferableTerm()
-    data class Cons(
-        val a: CheckableTerm,
-        val b: CheckableTerm,
-        val c: CheckableTerm,
-        val d: CheckableTerm
-    ) : InferableTerm()
-
-    data class VecElim(
-        val a: CheckableTerm,
-        val b: CheckableTerm,
-        val c: CheckableTerm,
-        val d: CheckableTerm,
-        val e: CheckableTerm,
-        val f: CheckableTerm,
-    ) : InferableTerm()
-
-}
-
-enum class Star { Star }
-
-/**
- * data Name
- * = Global String
- * | Local Int
- * | Quote Int
- * deriving (Show, Eq)
- */
-sealed class Name {
-    data class Global(val string: String) : Name()
-    data class Local(val int: Int) : Name()
-    data class Quote(val int: Int) : Name()
-}
-
-/**
- * data Term↓
- * = Inf Term↑
- * | Lam Term↓
- * deriving (Show, Eq)
- */
-sealed class CheckableTerm {
-    data class Inf(val inferableTerm: InferableTerm) : CheckableTerm()
-    data class Lam(val checkableTerm: CheckableTerm) : CheckableTerm()
-}
-
-/**
- * data Value
- * = VLam (Value → Value)
- * | VStar
- * | VPi Value (Value → Value)
- * | VNeutral Neutral
- * | VNat
- * | VZero
- * | VSucc Value
- */
-sealed class Value {
-    data class VLam(val lambda: (Value) -> Value) : Value()
-    object VStar : Value()
-    data class VPi(val value: Value, val lambda: (Value) -> Value) : Value()
-    data class VNeutral(val neutral: Neutral) : Value()
-    object VNat : Value()
-    object VZero : Value()
-    data class VSucc(val data: Value) : Value()
-    data class VNil(val data: Value) : Value()
-    data class VCons(val a: Value, val b: Value, val c: Value, val d: Value) : Value()
-    data class VVec(val a: Value, val b: Value) : Value()
-}
-
-/**
- * data Neutral
- * = NFree Name
- * | NApp Neutral Value
- */
-sealed class Neutral {
-    data class NFree(val name: Name) : Neutral()
-    data class NApp(val neutral: Neutral, val value: Value) : Neutral()
-    data class NNatElem(val a: Value, val b: Value, val c: Value, val d: Neutral) : Neutral()
-    data class NVecElem(val a: Value, val b: Value, val c: Value, val d: Value, val e: Value, val f: Neutral) :
-        Neutral()
-}
-
-/**
  * vfree :: Name → Value
  * vfree n = VNeutral (NFree n)
  */
@@ -254,55 +138,6 @@ typealias Type = Value
 typealias Context = List<Pair<Name, Type>>
 
 /**
- * type Result α = Either String α
- */
-sealed class Either<out L, out R> {
-    data class Left<L>(val data: L) : Either<L, Nothing>()
-    data class Right<R>(val data: R) : Either<Nothing, R>()
-
-    inline fun <T> and_then(f: (L) -> Either<T, @UnsafeVariance R>): Either<T, R> {
-        return when (this) {
-            is Left -> f(this.data)
-            is Right -> Right(this.data)
-        }
-    }
-}
-
-typealias Result<L> = Either<L, String>
-
-///**
-// * kind↓ :: Context → Type → Kind → Result ()
-// * kind↓ 0 (TFree x) Star = case lookup x 0 of
-// *     Just (HasKind Star) → return ()
-// *     Nothing → throwError "unknown identifier"
-// * kind↓ 0 (Fun κ κ′) Star = do
-// *     kind↓ 0 κ Star
-// *     kind↓ 0 κ′ Star
-// */
-//fun kindDownArrow(context: Context, type: Type, kind: Kind): Result<Unit> {
-//    return when (type) {
-//        is Type.TFree -> when (context.find { type.name == it.first }) {
-//            null -> throw RuntimeException("unknown identifier ${type.name} in $context")
-//            else -> Either.Left(Unit)
-//        }
-//        is Type.Fun -> {
-//            when (val result = kindDownArrow(context, type.input, Kind.Star)) {
-//                is Either.Left -> kindDownArrow(context, type.output, Kind.Star)
-//                is Either.Right -> result
-//            }
-//        }
-//    }
-//}
-
-/**
- * type↑0 :: Context → Term↑ → Result Type
- * type↑0 = type↑ 0
- */
-fun typeUpArrowZero(context: Context, inferableTerm: InferableTerm): Result<Type> {
-    return typeUpArrow(0, context, inferableTerm)
-}
-
-/**
  * type↑ :: Int →Context →Term↑ →Result Type
  * type↑ i 0 (Ann e p) = do
  *      type↓ i 0 ρ VStar
@@ -319,6 +154,55 @@ fun typeUpArrowZero(context: Context, inferableTerm: InferableTerm): Result<Type
  *                  type↓ i 0e′ τ
  *                  return τ′
  *          _ → throwError "illegal application"
+ * type↑ i 0Nat =return VStar
+ * type↑ i 0Zero =return VNat
+ * type↑ i 0(Succ k)=
+ *      do type↓ i 0k VNat
+ *      return VNat
+ * type↑ i 0(NatElim m mz ms k)=
+ *      do
+ *          type↓ i 0m (VPi VNat (const VStar))
+ *          let mVal =eval↓ m [ ]
+ *          type↓ i 0mz (mVal ‘vapp‘ VZero)
+ *          type↓ i 0ms (VPi VNat (λl →VPi (mVal ‘vapp‘ l)(λ→mVal ‘vapp‘ VSucc l)))
+ *          type↓ i 0k VNat
+ *          let kVal =eval↓ k [ ]
+ *          return (mVal ‘vapp‘ kVal)
+ * type↑ i 0(Vec αk)=
+ *      do
+ *          type↓ i 0αVStar
+ *          type↓ i 0k VNat
+ *          return VStar
+ * type↑ i 0(Nil α)=
+ *      do
+ *          type↓ i 0αVStar
+ *          let aVal =eval↓ α[ ]
+ *          return (VVec aVal VZero)
+ * type↑ i 0 (Cons αk x xs)=
+ *      do
+ *          type↓ i 0αVStar
+ *          let aVal =eval↓ α[ ]
+ *          type↓ i 0k VNat
+ *          let kVal =eval↓ k [ ]
+ *          type↓ i 0x aVal
+ *          type↓ i 0xs (VVec aVal kVal)
+ *          return (VVec aVal (VSucc kVal))
+ * type↑ i 0(VecElim αm mn mc k vs)=
+ *      do type↓ i 0αVStar
+ *          let aVal =eval↓ α[ ]
+ *          type↓ i 0m (VPi VNat (λk →VPi (VVec aVal k)(λ→VStar)))
+ *          let mVal =eval↓ m [ ]
+ *          type↓ i 0mn (foldl vapp mVal [VZero,VNil aVal])
+ *          type↓ i 0mc (VPi VNat (λl →
+ *              VPi aVal (λy →
+ *              VPi (VVec aVal l)(λys →
+ *              VPi (foldl vapp mVal [l,ys])(λ→
+ *              (foldl vapp mVal [VSucc l,VCons aVal l y ys]))))))
+ *          type↓ i 0k VNat
+ *          let kVal =eval↓ k [ ]
+ *          type↓ i 0vs (VVec aVal kVal)
+ *          let vsVal =eval↓ vs [ ]
+ *          return (foldl vapp mVal [kVal,vsVal])
  */
 fun typeUpArrow(i: Int, context: Context, infTerm: InferableTerm): Either<Type, String> {
     return when (infTerm) {
@@ -375,15 +259,15 @@ fun typeUpArrow(i: Int, context: Context, infTerm: InferableTerm): Either<Type, 
             val mz = infTerm.b
             val ms = infTerm.c
             val k = infTerm.d
-            typeDownArrow(i, context, m, Value.VPi(Value.VNat) { Value.VStar }).and_then {
+            typeDownArrow(i, context, m, Value.VPi(Value.VNat) { Value.VStar }).andThen {
                 val mVal = evalCheckableTerm(m, emptyList())
-                typeDownArrow(i, context, mz, vApp(mVal, Value.VZero)).and_then {
+                typeDownArrow(i, context, mz, vApp(mVal, Value.VZero)).andThen {
                     typeDownArrow(i, context, ms, Value.VPi(Value.VNat) { l ->
                         Value.VPi(vApp(mVal, l)) {
                             vApp(mVal, Value.VSucc(l))
                         }
-                    }).and_then {
-                        typeDownArrow(i, context, k, Value.VNat).and_then {
+                    }).andThen {
+                        typeDownArrow(i, context, k, Value.VNat).andThen {
                             val kVal = evalCheckableTerm(k, emptyList())
                             Either.Left(vApp(mVal, kVal))
                         }
@@ -396,40 +280,40 @@ fun typeUpArrow(i: Int, context: Context, infTerm: InferableTerm): Either<Type, 
             is Either.Right -> r1
         }
         is InferableTerm.Zero -> Either.Left(Value.VNat)
-        is InferableTerm.Cons -> typeDownArrow(i, context, infTerm.a, Value.VStar).and_then {
+        is InferableTerm.Cons -> typeDownArrow(i, context, infTerm.a, Value.VStar).andThen {
             val aVal = evalCheckableTerm(infTerm.a, emptyList())
-            typeDownArrow(i, context, infTerm.b, Value.VNat).and_then {
+            typeDownArrow(i, context, infTerm.b, Value.VNat).andThen {
                 val kVal = evalCheckableTerm(infTerm.b, emptyList())
-                typeDownArrow(i, context, infTerm.c, aVal).and_then {
-                    typeDownArrow(i, context, infTerm.d, Value.VVec(aVal, Value.VSucc(kVal))).and_then {
+                typeDownArrow(i, context, infTerm.c, aVal).andThen {
+                    typeDownArrow(i, context, infTerm.d, Value.VVec(aVal, Value.VSucc(kVal))).andThen {
                         Either.Left(Value.VVec(aVal, (Value.VSucc(kVal))))
                     }
                 }
             }
         }
-        is InferableTerm.Nil -> typeDownArrow(i, context, infTerm.type, Value.VStar).and_then {
+        is InferableTerm.Nil -> typeDownArrow(i, context, infTerm.type, Value.VStar).andThen {
             val aVal = evalCheckableTerm(infTerm.type, emptyList())
             Either.Left(Value.VVec(aVal, Value.VZero))
         }
-        is InferableTerm.Vec -> typeDownArrow(i, context, infTerm.a, Value.VStar).and_then {
-            typeDownArrow(i, context, infTerm.b, Value.VNat).and_then {
+        is InferableTerm.Vec -> typeDownArrow(i, context, infTerm.a, Value.VStar).andThen {
+            typeDownArrow(i, context, infTerm.b, Value.VNat).andThen {
                 Either.Left(Value.VStar)
             }
         }
-        is InferableTerm.VecElim -> typeDownArrow(i, context, infTerm.a, Value.VStar).and_then {
+        is InferableTerm.VecElim -> typeDownArrow(i, context, infTerm.a, Value.VStar).andThen {
             val aVal = evalCheckableTerm(infTerm.a, emptyList())
             typeDownArrow(
                 i,
                 context,
                 infTerm.b,
                 Value.VPi(Value.VNat) { k -> Value.VPi(Value.VVec(aVal, k)) { Value.VStar } })
-                .and_then {
+                .andThen {
                     val mVal = evalCheckableTerm(infTerm.b, emptyList())
                     typeDownArrow(
                         i,
                         context,
                         infTerm.c,
-                        listOf(Value.VZero, Value.VNil(aVal)).fold(mVal) { a, b -> vApp(a, b) }).and_then {
+                        listOf(Value.VZero, Value.VNil(aVal)).fold(mVal) { a, b -> vApp(a, b) }).andThen {
                         typeDownArrow(i, context, infTerm.d, Value.VPi(Value.VNat) { l ->
                             Value.VPi(aVal) { y ->
                                 Value.VPi(Value.VVec(aVal, l)) { ys ->
@@ -440,10 +324,10 @@ fun typeUpArrow(i: Int, context: Context, infTerm: InferableTerm): Either<Type, 
                                     }
                                 }
                             }
-                        }).and_then {
-                            typeDownArrow(i, context, infTerm.e, Value.VNat).and_then {
+                        }).andThen {
+                            typeDownArrow(i, context, infTerm.e, Value.VNat).andThen {
                                 val kVal = evalCheckableTerm(infTerm.e, emptyList())
-                                typeDownArrow(i, context, infTerm.f, Value.VVec(aVal, kVal)).and_then {
+                                typeDownArrow(i, context, infTerm.f, Value.VVec(aVal, kVal)).andThen {
                                     val vsVal = evalCheckableTerm(infTerm.f, emptyList())
                                     Either.Left(listOf(kVal, vsVal).fold(mVal) { a, b -> vApp(a, b) })
                                 }
@@ -457,12 +341,12 @@ fun typeUpArrow(i: Int, context: Context, infTerm: InferableTerm): Either<Type, 
 }
 
 /**
-type↓ :: Int →Context →Term↓ →Type →Result ()
-type↓ i 0(Inf e) τ = do
-τ′ ←type↑ i 0e
-unless (τ == τ′) (throwError "type mismatch")
-type↓ i 0 (Lam e) (Fun τ τ′) = type↓ (i + 1) ((Local i, HasType τ) : 0) (subst↓ 0 (Free (Local i)) e) τ′
-type↓ i 0 =throwError "type mismatch"
+ * type↓ :: Int → Context → Term↓ → Type → Result ()
+ * type↓ i 0 (Inf e) τ = do
+ *      τ′ ←type↑ i 0e
+ *      unless (τ == τ′) (throwError "type mismatch")
+ * type↓ i 0 (Lam e) (Fun τ τ′) = type↓ (i + 1) ((Local i, HasType τ) : 0) (subst↓ 0 (Free (Local i)) e) τ′
+ * type↓ i 0 _ _ = throwError "type mismatch"
  */
 fun typeDownArrow(
     i: Int,
@@ -514,15 +398,15 @@ fun substituteUpArrow(i: Int, inferableTerm: InferableTerm, infTerm: InferableTe
             substituteDownArrow(i, inferableTerm, infTerm.input),
             substituteDownArrow(i + 1, inferableTerm, infTerm.output)
         )
-        is InferableTerm.TStar -> InferableTerm.TStar()
+        is InferableTerm.TStar -> InferableTerm.TStar
         else -> throw RuntimeException("internal Error")
     }
 }
 
 /**
  * subst↓ :: Int → Term↑ → Term↓ → Term↓
- * subst↓ i r (Inf e)= Inf (subst↑ i r e)
- * subst↓ i r (Lam e)= Lam (subst↓ (i +1)r e)
+ * subst↓ i r (Inf e) = Inf (subst↑ i r e)
+ * subst↓ i r (Lam e) = Lam (subst↓ (i +1) r e)
  */
 fun substituteDownArrow(i: Int, inferableTerm: InferableTerm, checkableTerm: CheckableTerm): CheckableTerm {
     return when (checkableTerm) {
@@ -562,7 +446,7 @@ fun quote(i: Int, value: Value): CheckableTerm {
                 (quote(i + 1, value.lambda(vFree(Name.Quote(i)))))
             )
         )
-        is Value.VStar -> CheckableTerm.Inf(InferableTerm.TStar())
+        is Value.VStar -> CheckableTerm.Inf(InferableTerm.TStar)
         else -> throw RuntimeException("internal Error")
     }
 }
